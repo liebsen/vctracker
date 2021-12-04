@@ -26,19 +26,19 @@ var defaultSMTPConfig = {
 }
 
 var defaultEmailConfig = {
-  from: '"geotiendas" <geotiendascom@gmail.com>',
+  from: '"geotiendas" <overlemonsoft@gmail.com>',
 	subject: '',
 	template: '',
   data: {},
   tags: {
     proveedor: {
       footerText: 'Vendé donde quieras',
-      mailTo: 'geotiendascom@gmail.com',
+      mailTo: 'overlemonsoft@gmail.com',
       phone: '+542945690367'
     },
     cliente: {
       footerText: 'Vendé donde quieras',
-      mailTo: 'geotiendascom@gmail.com',
+      mailTo: 'overlemonsoft@gmail.com',
       phone: '+542945690367'
     }
   }

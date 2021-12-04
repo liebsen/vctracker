@@ -1,0 +1,1 @@
+MONGO_URL=mongodb://localhost:27017/vctracker APP_SECRET=034bcd8cb1be3957be059bd30acb6564 EMAIL_SMTP_USER=overlemonsoft@gmail.com EMAIL_SMTP_PASS=katusvzdxrpnjadq pm2 start server.js --name vctracker

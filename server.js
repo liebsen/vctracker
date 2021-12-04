@@ -4,15 +4,12 @@ const app = express()
 const bodyParser = require('body-parser')
 const mongodb = require('mongodb')
 const cors = require('cors')
-const initRoutes = require("./routes/web")
-const mustacheExpress = require('mustache-express')
-const allowedOrigins = [
-	'http://localhost:8080',
-	'http://localhost:9000',
-	'https://camminus.net',
-	'https://admin.camminus.net',
-	'https://api.camminus.net'
-]
+const moment = require('moment')
+const axios = require('axios')
+const emailHelper = require('./email/helper')
+const emailClient = emailHelper()
+const code = '999009275794'
+let db = null
 
 app.set('etag', false)
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -27,29 +24,62 @@ app.use(function(req, res, next) {
 	next()
 })
 
-app.use(cors({
-	origin: function(origin, callback){
-		// allow requests with no origin 
-		// (like mobile apps or curl requests)
-		if(!origin) {
-			console.log("not allowed origin to unknown")
-			return callback(null, true)
-		}
-		if(allowedOrigins.indexOf(origin) === -1){
-			var msg = 'The CORS policy for this site does not ' +
-				'allow access from the specified Origin: ' + origin
-			return callback(new Error(msg), false)
-		}
-		return callback(null, true)
-	}
-}))
+app.use(cors())
+
+function checkStatus () {
+	axios.post(`https://www.viacargo.com.ar/api/tracking/${code}/`, {}, { 
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:94.0) Gecko/20100101 Firefox/94.0',
+      'Origin': 'https://www.viacargo.com.ar',
+      'Referer': 'https://www.viacargo.com.ar/tracking',
+      'Alt-Used': 'www.viacargo.com.ar'
+    }
+  }).then(res => {
+    let data = res.data.ok[0].objeto
+		if (data) {
+			db.collection('trackers').findOneAndUpdate({ 
+        code: code 
+      },{
+        "$set": {
+          data: data,
+          lastUpdate: moment().utc().format()
+        }
+      },{ 
+        upsert: true, 
+        'new': false
+      }).then(function(doc) {  
+        if (!doc.data || (doc.data && doc.data.listaEventos.length !== data.listaEventos.length)) {
+          console.log('sending notification...')
+          let message = ''
+          data.listaEventos.forEach(e => {
+            message+= [e.fechaEvento, e.descripcion, e.tipoEvento, e.deleNombre].join(' ') + '<br>'
+          })
+          return emailClient.send({
+            to: 'telemagico@gmail.com',
+            subject: `Tracking actualizado: ${code}`,
+            data: {
+              title: `Tracking actualizado: ${code}`,
+              message: message,
+              tag: 'proveedor'
+            },
+            templatePath:path.join(__dirname,'./email/template.html')
+          }).catch(function(err){
+            if(err) console.log(err)
+          }).then(function(){
+            res.status(200).send({ status: 'success' });
+          })          
+        }
+      })
+    }
+	})
+}
 
 mongodb.MongoClient.connect(process.env.MONGO_URL, { useUnifiedTopology: true, useNewUrlParser: true }, function(err, database) {
 	if(err) throw err
-	const db = database.db(process.env.MONGO_URL.split('/').reverse()[0])
-	const port = process.env.PORT||3002
-	app.db = db
-	initRoutes(app)
+	db = database.db(process.env.MONGO_URL.split('/').reverse()[0])
+	const port = process.env.PORT||4444
+	setTimeout(checkStatus, 1000 * 60 * 60)
+	checkStatus()
 	app.listen(port, () => {
 	  console.log(`Server running at https://localhost:${port}`)
 	})
