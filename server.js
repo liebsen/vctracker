@@ -35,6 +35,7 @@ function checkStatus () {
       'Alt-Used': 'www.viacargo.com.ar'
     }
   }).then(res => {
+    let time = moment().utc().format()
     let data = res.data.ok[0].objeto
 		if (data) {
 			db.collection('trackers').findOneAndUpdate({ 
@@ -42,17 +43,17 @@ function checkStatus () {
       },{
         "$set": {
           data: data,
-          lastUpdate: moment().utc().format()
+          lastUpdate: time
         }
       },{ 
         upsert: true, 
         'new': false
-      }).then(function(doc) {  
-        if (!doc.data || (doc.data && doc.data.listaEventos.length !== data.listaEventos.length)) {
+      }).then(function(doc) {
+        if (!doc.value.data || (doc.value.data && doc.value.data.listaEventos.length !== data.listaEventos.length)) {
           console.log('sending notification...')
           let message = ''
           data.listaEventos.forEach(e => {
-            message+= [e.fechaEvento, e.descripcion, e.tipoEvento, e.deleNombre].join(' ') + '<br>'
+            message+= [e.fechaEvento, e.descripcion, e.tipoEvento, e.deleNombre].join(' | ') + '<br>'
           })
           return emailClient.send({
             to: 'telemagico@gmail.com',
