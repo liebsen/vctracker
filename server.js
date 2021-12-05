@@ -79,7 +79,7 @@ mongodb.MongoClient.connect(process.env.MONGO_URL, { useUnifiedTopology: true, u
 	if(err) throw err
 	db = database.db(process.env.MONGO_URL.split('/').reverse()[0])
 	const port = process.env.PORT||4444
-	setTimeout(checkStatus, 1000 * 60 * 60)
+	setTimeout(checkStatus, 1000 * 60 * 60 * 4)
 	checkStatus()
 	app.listen(port, () => {
 	  console.log(`Server running at https://localhost:${port}`)
